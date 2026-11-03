@@ -1,0 +1,60 @@
+name: Render ads
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-ads
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: sabaghanbarlo-hash/tiny-japanese-video
+          path: jp
+      - uses: actions/checkout@v4
+        with:
+          repository: sabaghanbarlo-hash/tiny-french-video
+          path: fr
+      - name: System dependencies
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/mono-official-stable.list
+          ok=0
+          for i in 1 2 3; do
+            sudo timeout 120 apt-get update -y -o Acquire::Retries=3 -o Acquire::http::Timeout=20 || true
+            if sudo timeout 240 apt-get install -y --no-install-recommends -o Acquire::http::Timeout=20 ffmpeg fonts-noto-cjk fonts-dejavu-core fonts-liberation; then ok=1; break; fi
+            sleep 10
+          done
+          if [ "$ok" != 1 ]; then echo "::error::apt install failed, re-run the workflow"; exit 1; fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Render Tiny Japanese ad
+        env:
+          STRICT_VOICE: "1"
+        run: python -u make_ad.py --lang jp --repo jp --out out/tiny-japanese-ad.mp4
+      - name: Render Tiny French ad
+        env:
+          STRICT_VOICE: "1"
+        run: python -u make_ad.py --lang fr --repo fr --out out/tiny-french-ad.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ads
+          path: out/*.mp4
+      - name: Commit videos
+        run: |
+          git config user.name "tiny-ads-bot"
+          git config user.email "tiny-ads-bot@users.noreply.github.com"
+          git add out
+          git commit -m "Render ads" || echo "nothing to commit"
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push -q && break; sleep 5; done
