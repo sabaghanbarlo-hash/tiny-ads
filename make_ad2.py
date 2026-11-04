@@ -14,23 +14,23 @@ from make_ad import make_audio, icon, fit_text  # noqa: E402  (music, icons, tex
 
 CFG = {
     "jp": dict(
-        module="tinyvideo", scene="sakura", left="Mika", right="Alex", rate="-15%", weather="petals", kind="JAPANESE",
+        module="tinyvideo", scene="sakura", left="Mika", right="Alex", rate="-8%", weather="petals", kind="JAPANESE",
         title="3 words you'll use every day!",
         hook=["WAIT!", "3 JAPANESE WORDS", "you'll use every day"],
-        hook_say="Wait! Do you know these three Japanese words?",
+        hook_say="Wait! Do you know these 3 Japanese words?",
         words=[("Mika", "ありがとう", "arigatō", "Thank you!"), ("Alex", "すみません", "sumimasen", "Excuse me! Or: sorry."), ("Mika", "おいしい！", "oishii", "Delicious!")],
-        cta_say="Want more? Learn Japanese free with Mika and Alex. Follow Tiny Japanese and visit our website!",
+        cta_say="Want more? Learn Japanese free! Follow Tiny Japanese and visit our website.",
         cta_tag="Learn free!",
         cta=[("yt", "Watch on YouTube", "@tinyjapanese"), ("web", "Free lessons - link in bio", "tiny-japanese.sabagh1.workers.dev"), ("ig", "Follow on Instagram", "@tinyjapanes")],
         cols=[(236, 96, 126), (96, 150, 112), (240, 160, 60)], dark=(52, 40, 44), accent=(222, 110, 134), root=2, seed=11,
     ),
     "fr": dict(
-        module="small", scene="park", left="Adrien", right="Marinette", rate="-15%", weather=None, kind="FRENCH",
+        module="small", scene="park", left="Adrien", right="Marinette", rate="-8%", weather=None, kind="FRENCH",
         title="3 words you'll use every day!",
         hook=["WAIT!", "3 FRENCH WORDS", "you'll use every day"],
-        hook_say="Wait! Do you know these three French words?",
+        hook_say="Wait! Do you know these 3 French words?",
         words=[("Marinette", "Merci !", "mehr-SEE", "Thank you!"), ("Adrien", "Excusez-moi !", "ex-kew-ZAY mwah", "Excuse me!"), ("Marinette", "C'est délicieux !", "say day-lee-SYUH", "It's delicious!")],
-        cta_say="Want more? Learn French free with Adrien and Marinette. Follow Tiny French and visit our website!",
+        cta_say="Want more? Learn French free! Follow Tiny French and visit our website.",
         cta_tag="Learn free!",
         cta=[("yt", "Watch on YouTube", "@tinyfrench9"), ("web", "Visit our website - link in bio", "tiny-french.sabagh1.workers.dev"), ("ig", "Follow on Instagram", "@tiny.french")],
         cols=[(70, 104, 196), (222, 84, 98), (236, 168, 56)], dark=(40, 44, 70), accent=(122, 150, 204), root=-1, seed=13,
@@ -101,28 +101,27 @@ def main():
         nonlocal t
         wav = os.path.join(tmp, f"v{len(chunks)}.wav")
         if narrator:
-            nrate = rate or "+8%"
+            nrate = rate or "+15%"
             if jp: m.synth(text, "Narrator", wav, nrate, a.dummy_audio, voice="en-US-AriaNeural", lang="en")
             else: m.synth(text, "en-US-AriaNeural", wav, nrate, a.dummy_audio, lang="en")
         else:
             if jp: m.synth(text, speaker, wav, rate or c["rate"], a.dummy_audio)
             else: m.synth(text, m.CHARS[speaker]["voice"], wav, rate or c["rate"], a.dummy_audio)
         x = m.read_wav(wav); s, e = t, t + len(x) / SR
-        chunks.extend([x, np.zeros(int(0.3 * SR), np.float32)]); t = e + 0.3
+        chunks.extend([x, np.zeros(int(0.18 * SR), np.float32)]); t = e + 0.18
         if not narrator: talk.append(dict(speaker=speaker, start=s, end=e))
         return s, e
 
-    hs, he = say(c["hook_say"], narrator=True, rate="+12%")
+    hs, he = say(c["hook_say"], narrator=True, rate="+18%")
     hook_end = he + 0.25
     segs = []
     for (sp, word, pron, mean) in c["words"]:
         w1s, w1e = say(word, sp)
         ms, me = say(mean, narrator=True)
-        w2s, w2e = say(word, sp)
-        segs.append(dict(sp=sp, word=word, pron=pron, mean=mean, start=w1s - 0.12, w1=(w1s, w1e), m=(ms, me), end=w2e + 0.25))
-    cs, ce = say(c["cta_say"], narrator=True, rate="+4%")
+        segs.append(dict(sp=sp, word=word, pron=pron, mean=mean, start=w1s - 0.12, w1=(w1s, w1e), m=(ms, me), end=me + 0.4))
+    cs, ce = say(c["cta_say"], narrator=True, rate="+12%")
     cta_start = segs[-1]["end"]
-    total = ce + 1.3
+    total = ce + 1.0
     chunks.append(np.zeros(int((total - t) * SR) + SR, np.float32))
     audio = np.concatenate(chunks); audio = audio / max(0.01, np.abs(audio).max()) * 0.9
     n = int(total * FPS); mouth = m.mouth_levels(audio, n)
